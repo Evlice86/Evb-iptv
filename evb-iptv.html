@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#060914">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>EVB IPTV</title>
+<style>
+:root{--accent:#a855f7;--bg:#060914;--card:rgba(17,24,43,.9);--line:rgba(255,255,255,.08);--muted:#94a3b8;--tk:32px;--hh:58px}
+html{font-size:16px}html.tv{font-size:clamp(17px,1.7vw,28px)}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:radial-gradient(900px 500px at 85% -5%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 60%),radial-gradient(700px 400px at -10% 40%,rgba(56,189,248,.07),transparent 60%),var(--bg);color:#f1f5f9;-webkit-tap-highlight-color:transparent;overflow-x:hidden;min-height:100vh}
+[hidden]{display:none!important}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tv :focus{outline:.18rem solid #fff;outline-offset:.12rem;box-shadow:0 0 0 .32rem var(--accent);position:relative;z-index:5}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--accent) 70%,#334155);border-radius:10px}
+.ticker-wrap{height:var(--tk);overflow:hidden;background:rgba(0,0,0,.65);border-bottom:1px solid var(--line);display:flex;align-items:center;padding-top:env(safe-area-inset-top);box-sizing:content-box}
+.ticker-move{white-space:nowrap;display:inline-block;animation:marquee 32s linear infinite;font-weight:700;font-size:.8rem;color:#e2e8f0;letter-spacing:.3px}
+@keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+header{height:var(--hh);display:flex;justify-content:space-between;align-items:center;padding:0 .9rem;background:rgba(6,9,20,.78);backdrop-filter:blur(14px);position:sticky;top:0;z-index:1000;border-bottom:1px solid var(--line);box-shadow:0 1px 0 color-mix(in srgb,var(--accent) 30%,transparent)}
+.logo{display:flex;align-items:center;gap:.55rem;font-size:1.25rem;font-weight:900;letter-spacing:-.04em;user-select:none}
+.lg-mark{width:2rem;height:2rem;border-radius:.6rem;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),#38bdf8);font-size:.85rem;color:#fff}
+.logo b{background:linear-gradient(90deg,var(--accent),#38bdf8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hdr-r{display:flex;align-items:center;gap:.45rem}
+#clock{font-size:.82rem;font-weight:700;color:var(--muted);margin-right:.3rem}
+.icon-btn,.menu-icon{width:2.4rem;height:2.4rem;border-radius:.75rem;border:1px solid var(--line);background:rgba(255,255,255,.05);color:#fff;font-size:1.05rem;display:grid;place-items:center;cursor:pointer;transition:.2s}
+.icon-btn:hover,.menu-icon:hover{background:var(--accent);border-color:var(--accent)}
+.dropdown-menu{position:absolute;top:calc(var(--hh) - 4px);right:.8rem;width:15rem;background:#0b1224;border:1px solid var(--line);border-radius:1rem;display:none;z-index:9999;padding:.5rem;box-shadow:0 20px 50px rgba(0,0,0,.7)}
+.dropdown-menu.show{display:block}
+.menu-item{padding:.7rem .75rem;cursor:pointer;border-radius:.65rem;display:flex;justify-content:space-between;font-weight:600;font-size:.88rem;background:none;border:0;color:inherit;width:100%;text-align:left}
+.menu-item:hover{background:rgba(255,255,255,.07);color:var(--accent)}
+.color-palette{display:none;grid-template-columns:repeat(4,1fr);gap:.5rem;padding:.5rem;border-top:1px solid var(--line)}.color-palette.show{display:grid}
+.color-opt{width:1.6rem;height:1.6rem;border-radius:50%;cursor:pointer;border:2px solid rgba(255,255,255,.25)}
+/* ---------- yerleşim ---------- */
+.app{display:grid;gap:.85rem;padding:.8rem;max-width:1900px;margin:0 auto;grid-template-columns:minmax(0,1fr);grid-template-areas:"pl" "ctl" "tabs" "chans" "sc"}
+.cats{grid-area:cats;display:none}.chans{grid-area:chans}.pl{grid-area:pl}.ctl{grid-area:ctl}.sc{grid-area:sc}.tabs{grid-area:tabs}
+.pl{position:sticky;top:var(--hh);z-index:30;align-self:start}
+body[data-tab=ch] .sc{display:none}body[data-tab=sc] .chans{display:none}
+.tabs{display:flex;gap:.5rem}
+.tabs button{flex:1;padding:.75rem;border-radius:.9rem;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted);font-weight:800;font-size:.88rem}
+.tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 8px 22px color-mix(in srgb,var(--accent) 40%,transparent)}
+@media(min-width:760px){
+ body{overflow:hidden}
+ .app{height:calc(100dvh - var(--tk) - var(--hh));grid-template-columns:minmax(300px,37%) minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"chans pl" "chans ctl" "chans sc"}
+ .tabs{display:none}.pl{position:static}
+ body .sc,body .chans{display:flex!important}
+ .chans,.sc{flex-direction:column;min-height:0}
+ .channel-list{overflow:auto;min-height:0;flex:1}.sc{overflow:auto}
+}
+@media(min-width:1100px){.app{grid-template-columns:15rem minmax(18rem,26rem) minmax(0,1fr);grid-template-areas:"cats chans pl" "cats chans ctl" "cats chans sc"}.cats{display:block}.chips{display:none!important}}
+.tv body{overflow:hidden}
+.tv .app{height:calc(100dvh - var(--tk) - var(--hh));grid-template-columns:15rem minmax(18rem,26rem) minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"cats chans pl" "cats chans ctl" "cats chans sc"}
+.tv .cats{display:block}.tv .chips,.tv .tabs,.tv .ctl,.tv .icon-btn.no-tv,.tv .ov-btn{display:none!important}.tv .pl{position:static}
+.tv body .sc,.tv body .chans{display:flex!important}.tv .chans,.tv .sc{flex-direction:column;min-height:0}.tv .channel-list{overflow:auto;min-height:0;flex:1}.tv .sc{overflow:auto}
+@media(max-height:480px) and (orientation:landscape){.pl{position:static}}
+/* ---------- kartlar ---------- */
+.card,.player-wrapper,.score-widget{background:linear-gradient(180deg,rgba(30,41,59,.55),var(--card));border:1px solid rgba(255,255,255,.09);border-radius:1.4rem;box-shadow:0 24px 60px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05)}
+.player-wrapper{padding:.5rem}.score-widget{padding:1rem}.cats{padding:.8rem;overflow:auto}
+.panel-title{font-size:.7rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:.2rem .4rem .6rem}
+.cat-btn{width:100%;display:flex;align-items:center;gap:.6rem;padding:.65rem .75rem;border-radius:.8rem;border:1px solid transparent;background:none;color:#cbd5e1;font-weight:700;font-size:.88rem;text-align:left;margin-bottom:.2rem}
+.cat-btn:hover{background:rgba(255,255,255,.06)}
+.cat-btn.on{background:color-mix(in srgb,var(--accent) 16%,transparent);border-color:color-mix(in srgb,var(--accent) 60%,transparent);color:#fff}
+.cat-btn .n{margin-left:auto;font-size:.72rem;color:var(--muted);background:rgba(255,255,255,.07);border-radius:.5rem;padding:.1rem .45rem}
+.cat-sep{height:1px;background:var(--line);margin:.5rem .3rem}
+.chans{display:flex;flex-direction:column;gap:.6rem;min-height:0}
+.chans-top{display:flex;flex-direction:column;gap:.55rem}
+.search-bar{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);color:#fff;padding:.8rem 1rem;border-radius:1rem;outline:none;font-size:.92rem;transition:.2s}
+.search-bar:focus{border-color:var(--accent)}
+.chips{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.3rem;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);padding:.5rem 1rem;border-radius:999px;font-size:.8rem;font-weight:700;white-space:nowrap}
+.chip.active,.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 40%,transparent)}
+.chans-meta{display:flex;justify-content:space-between;align-items:center}
+.stats{font-size:.75rem;color:var(--muted);font-weight:700}
+.btn{background:rgba(255,255,255,.07);border:1px solid var(--line);color:#fff;padding:.55rem .95rem;border-radius:.75rem;font-size:.8rem;font-weight:700;transition:.2s}
+.btn:hover,.btn.on{background:var(--accent);border-color:var(--accent)}
+.btn.sm{padding:.35rem .7rem;font-size:.72rem}.btn.danger:hover{background:#ef4444;border-color:#ef4444}
+.channel-list{display:flex;flex-direction:column;gap:.5rem;padding:.2rem .1rem 5rem}
+.channel-list.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(8.5rem,1fr))}
+.channel-item{display:flex;align-items:center;gap:.7rem;padding:.6rem .8rem;border-radius:.95rem;background:rgba(255,255,255,.04);border:1px solid var(--line);cursor:pointer;position:relative;transition:.2s;min-width:0}
+.channel-item:hover{background:rgba(255,255,255,.08);transform:translateY(-1px)}
+.channel-item.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent);box-shadow:0 10px 28px color-mix(in srgb,var(--accent) 20%,transparent)}
+.channel-item.active::before{content:"";position:absolute;left:0;top:.5rem;bottom:.5rem;width:4px;border-radius:4px;background:linear-gradient(var(--accent),#38bdf8)}
+.ci-n{font-size:.7rem;color:var(--muted);width:1.6rem;text-align:center;font-weight:800;flex-shrink:0}
+.ch-logo{width:3.2rem;height:2.3rem;object-fit:contain;background:rgba(255,255,255,.07);border-radius:.6rem;padding:.2rem;flex-shrink:0}
+.ci-t{flex:1;min-width:0;display:flex;flex-direction:column}
+.ch-name{font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-t small{color:var(--muted);font-size:.7rem}
+.live-dot{height:6px;width:6px;background:#ef4444;border-radius:50%;animation:blink 1s infinite;flex-shrink:0}
+@keyframes blink{50%{opacity:.2}}
+.star{background:none;border:0;color:#475569;font-size:1.15rem;padding:.2rem .3rem}.star.on{color:#facc15}
+.grid .channel-item{flex-direction:column;text-align:center;padding:.8rem .5rem}.grid .ch-logo{width:100%;height:3.2rem}.grid .ci-n{position:absolute;top:.3rem;left:.4rem;width:auto}.grid .star{position:absolute;top:.15rem;right:.15rem}.grid .live-dot{display:none}.grid .ci-t{width:100%}
+.empty{text-align:center;padding:2rem 1rem;color:var(--muted);font-size:.88rem;grid-column:1/-1;display:flex;flex-direction:column;gap:.8rem;align-items:center}
+/* ---------- oynatıcı ---------- */
+.video-box{position:relative;border-radius:1.05rem;overflow:hidden;aspect-ratio:16/9;background:#000;width:100%}
+video{width:100%!important;height:100%!important;display:block;object-fit:contain;transition:filter .4s;background:#000}
+.f-vivid{filter:saturate(1.6) contrast(1.1)}.f-sharp{filter:contrast(1.3) brightness(1.1)}
+.live-badge{position:absolute;top:.6rem;left:.6rem;z-index:10;background:rgba(239,68,68,.92);color:#fff;font-size:.66rem;font-weight:800;padding:.25rem .55rem;border-radius:.5rem;display:flex;align-items:center;gap:.35rem}
+.live-badge i{width:6px;height:6px;border-radius:50%;background:#fff;animation:blink 1s infinite}
+.video-overlay-controls{position:absolute;top:.6rem;right:.6rem;display:flex;gap:.45rem;z-index:10}
+.ov-btn{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);color:#fff;width:2.3rem;height:2.3rem;border-radius:.7rem;display:grid;place-items:center;backdrop-filter:blur(6px);font-size:1rem}
+.ov-btn:hover{background:var(--accent)}
+.status{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;background:rgba(2,6,23,.72);z-index:6;font-size:.88rem;text-align:center;padding:.8rem}.status.show{display:flex}
+.spin{width:2rem;height:2rem;border:3px solid rgba(255,255,255,.2);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.osd{position:absolute;left:.8rem;bottom:.8rem;z-index:8;background:rgba(2,6,23,.82);border-left:4px solid var(--accent);padding:.5rem .9rem;border-radius:.7rem;font-weight:800;opacity:0;transition:.35s;pointer-events:none;max-width:85%}
+.osd small{display:block;color:var(--muted);font-weight:600;font-size:.7rem}.osd.show{opacity:1}
+.now-playing{display:flex;align-items:center;gap:.7rem;padding:.55rem .8rem;margin-top:.5rem;border-radius:.9rem;border:1px solid var(--line);background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 15%,transparent),rgba(255,255,255,.03))}
+#activeLogo{width:2.8rem;height:1.9rem;object-fit:contain}
+#activeName{font-weight:800;font-size:.92rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#netInfo{font-size:.68rem;color:var(--muted);text-align:right;white-space:nowrap}
+.np-nav{display:flex;gap:.3rem}.np-nav button{width:2.1rem;height:2.1rem;border-radius:.65rem;border:1px solid var(--line);background:rgba(255,255,255,.06);color:#fff;font-size:.8rem}.np-nav button:hover{background:var(--accent)}
+.ctl{padding:.5rem}.ctl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem}
+.gbtn{background:linear-gradient(180deg,rgba(51,65,85,.5),rgba(30,41,59,.85));border:1px solid var(--line);border-radius:.95rem;padding:.55rem .2rem;display:flex;flex-direction:column;align-items:center;gap:.3rem;color:#f1f5f9;font-size:.68rem;font-weight:700;transition:.2s}
+.gbtn .i{width:2.1rem;height:2.1rem;border-radius:.7rem;background:rgba(255,255,255,.07);display:grid;place-items:center;font-size:1.05rem}
+.gbtn:hover,.gbtn.on{border-color:var(--accent);color:var(--accent)}
+@media(max-width:759px){.ctl-grid{display:flex;overflow-x:auto;scrollbar-width:none}.gbtn{min-width:4.6rem}}
+.panel{display:none;gap:.5rem;padding:.7rem;margin-top:.5rem;background:rgba(255,255,255,.04);border-radius:.9rem;flex-wrap:wrap;align-items:center}.panel.show{display:flex}
+.tp-label{font-size:.72rem;color:var(--muted);width:100%}
+select,.in{background:#0f172a;border:1px solid var(--line);color:#fff;border-radius:.7rem;padding:.55rem .7rem;font-size:.85rem;font-family:inherit}
+select option{background:#0f172a}
+/* ---------- skorlar ---------- */
+.score-header{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:.95rem;margin-bottom:.8rem;padding-bottom:.7rem;border-bottom:1px solid var(--line)}
+.live-indicator{color:#ef4444;font-size:.75rem;font-weight:700;display:flex;align-items:center;gap:.35rem}
+.live-dot-red{height:8px;width:8px;background:#ef4444;border-radius:50%;display:inline-block;animation:blink 1s infinite}
+.score-tabs{display:flex;gap:.5rem;margin-bottom:.8rem;flex-wrap:wrap}
+.score-tab{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);padding:.45rem .9rem;border-radius:.7rem;cursor:pointer;font-size:.78rem;font-weight:700}
+.score-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.score-list{display:flex;flex-direction:column;gap:.4rem}
+.match-league{font-size:.68rem;color:#64748b;padding:.5rem .4rem .15rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.score-item{display:flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.03);padding:.6rem .75rem;border-radius:.8rem;border:1px solid var(--line)}
+.match-time{color:#10b981;font-weight:800;font-size:.72rem;min-width:2.4rem;text-align:center;background:rgba(16,185,129,.12);border-radius:.45rem;padding:.2rem .3rem}
+.match-time.ft{color:var(--muted);background:rgba(148,163,184,.12)}.match-time.ns{color:#60a5fa;background:rgba(96,165,250,.12)}
+.match-teams{flex-grow:1;display:flex;align-items:center;gap:.5rem;min-width:0}
+.team{font-weight:600;flex:1;font-size:.8rem;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.team.home{text-align:right}
+.match-score{font-weight:800;background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#38bdf8));padding:.25rem .65rem;border-radius:.55rem;font-size:.82rem;white-space:nowrap}
+.score-empty{text-align:center;padding:1.2rem;font-size:.85rem;color:#64748b;display:flex;flex-direction:column;align-items:center;gap:.6rem}
+.refresh-btn{background:var(--accent);color:#fff;border:none;padding:.5rem 1.2rem;border-radius:.7rem;font-size:.8rem;font-weight:700}
+/* ---------- pencereler ---------- */
+dialog{background:linear-gradient(180deg,#101a33,#0a1122);color:#f1f5f9;border:1px solid rgba(255,255,255,.12);border-radius:1.4rem;padding:1.2rem;width:min(94vw,26rem);box-shadow:0 40px 100px rgba(0,0,0,.7)}
+dialog::backdrop{background:rgba(0,0,0,.7);backdrop-filter:blur(6px)}
+dialog h3{margin:0 0 .8rem}dialog p{font-size:.85rem;line-height:1.6;color:#cbd5e1;margin:.5rem 0}
+dialog label{display:block;font-size:.74rem;color:var(--muted);margin:.9rem 0 .35rem}
+.in{width:100%}.row{display:flex;gap:.5rem;margin-top:.5rem}.row>.btn{flex-shrink:0}
+.cast-opt{display:flex;gap:.8rem;align-items:center;padding:.8rem;border:1px solid var(--line);border-radius:1rem;margin-top:.6rem;cursor:pointer;background:rgba(255,255,255,.04)}
+.cast-opt:hover{border-color:var(--accent)}.cast-opt.off{opacity:.45}.cast-opt>span{font-size:1.5rem}.cast-opt small{display:block;color:var(--muted);font-size:.72rem;margin-top:.15rem}
+#qr{display:grid;place-items:center;background:#fff;border-radius:1rem;padding:.8rem;width:fit-content;margin:.6rem auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin:.8rem 0}
+#adm{width:min(98vw,64rem);height:min(92vh,46rem);padding:0;overflow:hidden}
+#adm[open]{display:flex}
+#admNav{width:11.5rem;flex-shrink:0;border-right:1px solid var(--line);padding:1rem .7rem;display:flex;flex-direction:column;gap:.35rem;background:rgba(0,0,0,.2)}
+#admNav h3{margin:.1rem .4rem .7rem;font-size:1rem}
+#admNav button{text-align:left;padding:.65rem .75rem;border-radius:.75rem;border:1px solid transparent;background:none;color:#cbd5e1;font-weight:700;font-size:.85rem}
+#admNav button.on{background:color-mix(in srgb,var(--accent) 18%,transparent);border-color:color-mix(in srgb,var(--accent) 60%,transparent);color:#fff}
+#admBody{flex:1;min-width:0;overflow:auto;padding:1rem 1.1rem}
+@media(max-width:700px){#adm[open]{flex-direction:column}#admNav{width:auto;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:.6rem}#admNav h3{display:none}#admNav button{white-space:nowrap}}
+.a-bar{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.7rem}.a-bar .in{flex:1;min-width:8rem;width:auto}
+.a-meta,.muted{color:var(--muted);font-size:.75rem}
+.a-rows{display:flex;flex-direction:column;gap:.4rem;margin-top:.5rem}
+.a-row{display:flex;align-items:center;gap:.5rem;padding:.5rem .6rem;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:.8rem}
+.a-row.dim{opacity:.5}.a-row img{width:2.6rem;height:1.8rem;object-fit:contain;background:rgba(255,255,255,.07);border-radius:.4rem;flex-shrink:0}
+.a-t{flex:1;min-width:0;display:flex;flex-direction:column}.a-t b{font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.a-t small{color:var(--muted);font-size:.68rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.a-row select{width:auto;max-width:8rem;padding:.35rem .5rem;font-size:.75rem}
+.a-btns{display:flex;gap:.25rem;flex-shrink:0}.a-btns button{width:1.9rem;height:1.9rem;border-radius:.55rem;border:1px solid var(--line);background:rgba(255,255,255,.06);color:#fff;font-size:.78rem}.a-btns button:hover{background:var(--accent)}.a-btns button.d:hover{background:#ef4444}
+.a-row .ico{width:3.2rem;text-align:center}.a-row .grow{flex:1}.chk{display:flex;align-items:center;gap:.25rem;margin:0!important;font-size:.8rem!important;color:#cbd5e1!important}
+.a-sec{margin-bottom:1.2rem}.a-sec h4{margin:.2rem 0 .5rem;font-size:.85rem}
+.a-bulk{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;padding:.5rem;background:color-mix(in srgb,var(--accent) 14%,transparent);border-radius:.8rem;margin-bottom:.5rem}
+textarea.in{min-height:6rem;resize:vertical}
+.toast{position:fixed;bottom:calc(1.2rem + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(6rem);background:var(--accent);color:#fff;padding:.65rem 1.1rem;border-radius:.85rem;font-weight:700;font-size:.85rem;transition:.3s;z-index:99999;max-width:90vw;text-align:center}.toast.show{transform:translateX(-50%) translateY(0)}
+/* ---------- TV tam ekran ---------- */
+.tvfs{overflow:hidden}
+.tvfs .ticker-wrap,.tvfs header,.tvfs .cats,.tvfs .chans,.tvfs .sc,.tvfs .ctl,.tvfs .now-playing{display:none!important}
+.tvfs .app{display:block;padding:0;height:100dvh}
+.tvfs .pl{position:fixed;inset:0;z-index:500;border-radius:0;padding:0;border:0;margin:0}
+.tvfs .video-box{border-radius:0;height:100%;aspect-ratio:auto}
+.tvfs .osd{font-size:1.5rem;left:2rem;bottom:2rem;padding:.8rem 1.4rem}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body data-tab="ch">
+
+<div class="ticker-wrap"><div class="ticker-move" id="ticker">EVB IPTV'ye Hoş Geldiniz ——— İyi seyirler ——— Her gün güncel kanallar!</div></div>
+
+<header>
+    <div class="logo" id="logo"><span class="lg-mark">▶</span><span id="logoText">EVB <b>IPTV</b></span></div>
+    <div class="hdr-r">
+        <span id="clock"></span>
+        <button class="icon-btn no-tv" onclick="shareLink()" title="Siteyi paylaş" aria-label="Paylaş">🔗</button>
+        <button class="icon-btn no-tv" onclick="castTV()" title="TV'ye aktar" aria-label="TV'ye aktar">📡</button>
+        <div class="menu-icon" id="menuToggle" tabindex="0" role="button" aria-label="Menü">☰</div>
+    </div>
+    <div class="dropdown-menu" id="dropdown">
+        <div class="menu-item" id="colorBtn" tabindex="0">🎨 Tema Rengi <span>▼</span></div>
+        <div class="color-palette" id="palette">
+            <div class="color-opt" style="background:#a855f7" onclick="setTheme('#a855f7')"></div>
+            <div class="color-opt" style="background:#3b82f6" onclick="setTheme('#3b82f6')"></div>
+            <div class="color-opt" style="background:#ef4444" onclick="setTheme('#ef4444')"></div>
+            <div class="color-opt" style="background:#10b981" onclick="setTheme('#10b981')"></div>
+            <div class="color-opt" style="background:#ec4899" onclick="setTheme('#ec4899')"></div>
+            <div class="color-opt" style="background:#f59e0b" onclick="setTheme('#f59e0b')"></div>
+            <div class="color-opt" style="background:#06b6d4" onclick="setTheme('#06b6d4')"></div>
+        </div>
+        <button class="menu-item" id="menuAdmin">⚙️ Yönetim paneli</button>
+        <button class="menu-item" onclick="location.reload()">🔄 Yenile</button>
+        <button class="menu-item" onclick="document.getElementById('helpDlg').showModal()">⌨️ Kısayollar / Kumanda</button>
+    </div>
+</header>
+
+<main class="app" id="app">
+    <aside class="cats card" id="catPanel"><div class="panel-title">Kategoriler</div><div id="catList"></div></aside>
+
+    <section class="chans card" style="padding:.8rem">
+        <div class="chans-top">
+            <input type="text" class="search-bar" id="search" placeholder="Kanal ara…" autocomplete="off">
+            <div class="chips" id="chips"></div>
+            <div class="chans-meta"><span class="stats" id="chanCount"></span><button class="btn sm" id="viewBtn">▦ Kart görünümü</button></div>
+        </div>
+        <div class="channel-list" id="channelBox"></div>
+    </section>
+
+    <section class="pl player-wrapper">
+        <div class="video-box" id="videoContainer" tabindex="0">
+            <div class="live-badge"><i></i>CANLI</div>
+            <div class="video-overlay-controls">
+                <div class="ov-btn" title="Görüntü oranı" onclick="toggleFit()">📏</div>
+                <div class="ov-btn" title="Tam ekran" onclick="toggleFullScreen()">🔲</div>
+            </div>
+            <div class="osd" id="osd"></div>
+            <div class="status" id="status"><div class="spin" id="spin"></div><span id="statusText"></span><button class="btn" id="retryBtn" style="display:none" onclick="retryStream()">Tekrar dene</button></div>
+            <video id="mainVideo" controls autoplay playsinline></video>
+        </div>
+        <div id="nowPlaying" class="now-playing">
+            <img id="activeLogo" src="" alt="">
+            <span id="activeName">Yükleniyor...</span>
+            <span id="netInfo"></span>
+            <span class="np-nav"><button onclick="zap(-1)" aria-label="Önceki kanal">⏮</button><button onclick="zap(1)" aria-label="Sonraki kanal">⏭</button></span>
+        </div>
+    </section>
+
+    <section class="ctl card">
+        <div class="ctl-grid">
+            <button class="gbtn" data-p="pFilter"><span class="i">✨</span>Görüntü</button>
+            <button class="gbtn" data-p="pQual"><span class="i">📶</span>Kalite</button>
+            <button class="gbtn" id="bFav" onclick="toggleFavNow()"><span class="i">☆</span>Favori</button>
+            <button class="gbtn" data-p="pTools"><span class="i">⚙️</span>Araçlar</button>
+            <button class="gbtn" onclick="castTV()"><span class="i">📡</span>TV'ye aktar</button>
+            <button class="gbtn" onclick="shareLink()"><span class="i">🔗</span>Paylaş</button>
+            <button class="gbtn" onclick="pip()"><span class="i">📺</span>Pencere</button>
+            <button class="gbtn" onclick="takeSnap()"><span class="i">📸</span>Ekran al</button>
+        </div>
+        <div class="panel" id="pFilter"><button class="btn on" onclick="setFilt('');pOn(this)">Normal</button><button class="btn" onclick="setFilt('f-vivid');pOn(this)">Canlı renk</button><button class="btn" onclick="setFilt('f-sharp');pOn(this)">Keskinlik</button></div>
+        <div class="panel" id="pQual"><span id="qualBox" style="display:flex;gap:.5rem;flex-wrap:wrap"><span class="tp-label">Yayın yüklenince görünür.</span></span></div>
+        <div class="panel" id="pTools">
+            <span class="tp-label">Uyku zamanlayıcı</span>
+            <select id="sleepSel"><option value="0">Kapalı</option><option value="15">15 dk</option><option value="30">30 dk</option><option value="60">60 dk</option><option value="90">90 dk</option></select>
+            <button class="btn" id="wlBtn" onclick="toggleWake()">Ekran açık kalsın: Kapalı</button>
+            <button class="btn on" id="goalBtn" onclick="toggleGoal()">Gol bildirimi: Açık</button>
+            <button class="btn" onclick="goLive()">⏩ Canlıya atla</button>
+            <button class="btn" onclick="retryStream()">🔄 Yayını yenile</button>
+            <button class="btn" onclick="backCh()">↩ Önceki kanal</button>
+        </div>
+    </section>
+
+    <nav class="tabs" id="mobTabs"><button class="on" data-tab="ch">📺 Kanallar</button><button data-tab="sc">⚽ Skorlar</button></nav>
+
+    <section class="sc score-widget">
+        <div class="score-header"><span>⚽ Maç Skorları</span><div class="live-indicator"><span class="live-dot-red"></span> CANLI</div></div>
+        <div class="score-tabs">
+            <div class="score-tab active" tabindex="0" onclick="switchTab('live',this)">🔴 Canlı</div>
+            <div class="score-tab" tabindex="0" onclick="switchTab('today',this)">📅 Bugün</div>
+            <div class="score-tab" tabindex="0" onclick="switchTab('finished',this)">✅ Biten</div>
+        </div>
+        <div class="score-list" id="scoreList"><div class="score-empty">⏳ Yükleniyor...</div></div>
+    </section>
+</main>
+
+<dialog id="castDlg">
+    <h3>📡 TV'ye aktar</h3>
+    <div class="cast-opt" id="coCast" tabindex="0" onclick="castPick('cast')"><span>📡</span><div><b>Chromecast / Google TV</b><small id="coCastS">Aynı Wi-Fi'daki cihazlara gönder</small></div></div>
+    <div class="cast-opt" id="coAir" tabindex="0" onclick="castPick('air')"><span>🍎</span><div><b>AirPlay</b><small>iPhone / iPad Safari → Apple TV ve uyumlu TV'ler</small></div></div>
+    <div class="cast-opt" tabindex="0" onclick="toast('Chrome menüsü ⋮ → Yayınla → Sekmeyi yayınla')"><span>💻</span><div><b>Bilgisayardan sekme yayını</b><small>Chrome ⋮ → Yayınla → Sekmeyi yayınla (her TV'de çalışır)</small></div></div>
+    <p class="muted">Android TV / TV box'ın varsa: EVB IPTV uygulamasını (APK) doğrudan kutuda aç, en rahat yöntem budur.</p>
+    <div class="row"><button class="btn" onclick="this.closest('dialog').close()">Kapat</button></div>
+</dialog>
+<dialog id="shareDlg">
+    <h3>🔗 Siteyi paylaş</h3>
+    <input class="in" id="shareUrl" readonly>
+    <div id="qr"></div>
+    <div class="grid2"><button class="btn" onclick="sysShare()">📤 Paylaş…</button><button class="btn" onclick="copyLink()">📋 Kopyala</button><button class="btn" onclick="shareTo('wa')">WhatsApp</button><button class="btn" onclick="shareTo('tg')">Telegram</button></div>
+    <p class="muted" id="shareNote"></p>
+    <button class="btn" onclick="this.closest('dialog').close()">Kapat</button>
+</dialog>
+<dialog id="pinDlg">
+    <h3>🔒 Yönetici girişi</h3>
+    <input class="in" id="pinIn" type="password" inputmode="numeric" placeholder="Şifre" autocomplete="off">
+    <p class="muted" id="pinErr"></p>
+    <div class="row"><button class="btn on" id="pinOk">Giriş</button><button class="btn" onclick="this.closest('dialog').close()">İptal</button></div>
+</dialog>
+<dialog id="cfDlg">
+    <p id="cfMsg" style="font-size:.95rem;color:#f1f5f9"></p>
+    <div class="row"><button class="btn danger on" id="cfOk">Evet</button><button class="btn" id="cfNo">Vazgeç</button></div>
+</dialog>
+<dialog id="catDlg"><h3>Kategoriler</h3><div id="catSheet" style="max-height:60vh;overflow:auto"></div><div class="row"><button class="btn" onclick="this.closest('dialog').close()">Kapat</button></div></dialog>
+<dialog id="chDlg">
+    <h3 id="chTitle">Kanal</h3>
+    <label>Kanal adı</label><input class="in" id="cn" maxlength="60">
+    <label>Yayın adresi (.m3u8)</label><input class="in" id="cu" placeholder="https://…">
+    <label>Logo adresi (isteğe bağlı)</label><input class="in" id="cl" placeholder="https://…png">
+    <label>Kategori</label>
+    <div class="row"><select class="in" id="cc"></select><input class="in" id="cnew" placeholder="veya yeni kategori" maxlength="30"></div>
+    <p class="muted" id="ctr"></p>
+    <div class="row"><button class="btn" id="cTest">🧪 Test et</button><button class="btn on" id="cSave">Kaydet</button><button class="btn" onclick="this.closest('dialog').close()">İptal</button></div>
+</dialog>
+<dialog id="helpDlg">
+    <h3>⌨️ Kısayollar ve kumanda</h3>
+    <p><b>Bilgisayar:</b> ↑/↓ kanal değiştir · 1-9 kanal numarası · F tam ekran · M sessiz · Q önceki kanal · / ara</p>
+    <p><b>Android TV kumandası:</b> Yön tuşları gezinme · OK seç / tam ekran · Geri çıkış · Tam ekranda ↑↓ kanal, ←→ ses, rakamlarla kanal numarası, 0 önceki kanal · Kırmızı favori · Yeşil kategoriler · Sarı liste/kart · Mavi sessiz</p>
+    <button class="btn" onclick="this.closest('dialog').close()">Kapat</button>
+</dialog>
+<dialog id="adm"><nav id="admNav"><h3>⚙️ Yönetim</h3><button data-t="chn" class="on">📺 Kanallar</button><button data-t="cat">🗂 Kategoriler</button><button data-t="set">🎛 Genel</button><button data-t="bak">💾 Yedek / İçe aktar</button><button onclick="document.getElementById('adm').close()" style="margin-top:auto">✕ Kapat</button></nav><div id="admBody"></div></dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script>
+const video = document.getElementById('mainVideo');
+const container = document.getElementById('videoContainer');
+const activeLogo = document.getElementById('activeLogo');
+const activeName = document.getElementById('activeName');
+let hls = new Hls();
+
+const API_KEY = "bec6c8548ddefd972782c08c6523c8b7";
+let currentTab = 'live';
+let allMatches = { live: [], today: [], finished: [] };
+
+const kanallar = [
+    { ad: "beIN Sports 1 HD", url: "https://css.d6e3eds5e065t5.help//b1/tracks-v1a1/mono.m3u8", logo: "https://media.info/l/o/6/6589.1491349382.png" },
+    { ad: "beIN Sports 2 HD", url: "https://css.d6e3eds5e065t5.help//b2/tracks-v1a1/mono.m3u8", logo: "https://media.info/l/o/6/6594.1491352241.png" },
+    { ad: "beIN Sports 3 HD", url: "https://css.d6e3eds5e065t5.help//b3/tracks-v1a1/mono.m3u8", logo: "https://r2.thesportsdb.com/images/media/channel/logo/BeIn_Sports_3_Australia.png" },
+    { ad: "beIN Sports 4 HD", url: "https://css.d6e3eds5e065t5.help//b4/tracks-v1a1/mono.m3u8", logo: "https://static.wikia.nocookie.net/logopedia/images/b/bc/BS4.svg/revision/latest/scale-to-width-down/250?cb=20200107204039" },
+    { ad: "beIN Sports 5 HD", url: "https://css.d6e3eds5e065t5.help//b5/tracks-v1a1/mono.m3u8", logo: "https://r2.thesportsdb.com/images/media/channel/logo/93010o1631279441.png" },
+    { ad: "beIN Sports Max 1", url: "aHR0cHM6Ly9vbmUuYjJhN2ZhMTA5ZWY4NGE2Zi5jbGljay9saXZlL3NiZWluc3BvcnRzLTIvcGxheWxpc3QubTN1OA==", logo: "https://upload.wikimedia.org/wikipedia/commons/9/9c/The_new_logo_of_beIN_MAX_1_at_2017.png" },
+    { ad: "Tivibu Spor 1", url: "aHR0cHM6Ly9vbmUuYjJhN2ZhMTA5ZWY4NGE2Zi5jbGljay9saXZlL3N0aXZpYnVzcG9yLTEvcGxheWxpc3QubTN1OA==", logo: "https://r2.thesportsdb.com/images/media/channel/logo/qadnsi1642604437.png" },
+    { ad: "Tivibu Spor 2", url: "aHR0cHM6Ly9vbmUuYjJhN2ZhMTA5ZWY4NGE2Zi5jbGljay9saXZlL3N0aXZpYnVzcG9yLTIvcGxheWxpc3QubTN1OA==", logo: "https://r2.thesportsdb.com/images/media/channel/logo/kuasdm1642604455.png" },
+    { ad: "TRT 1", url: "https://tv-trt1.medya.trt.com.tr/master.m3u8?hls=1", logo: "https://upload.wikimedia.org/wikipedia/commons/0/04/TRT_1_HD_kurumsal_logo_%282012-2021%29.png" }
+];
+
+function getToday() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+async function fetchScores() {
+    document.getElementById('scoreList').innerHTML = '<div class="score-empty">⏳ Yükleniyor...</div>';
+    try {
+        const headers = { "x-rapidapi-key": API_KEY, "x-rapidapi-host": "v3.football.api-sports.io" };
+
+        const [liveRes, todayRes] = await Promise.all([
+            fetch("https://v3.football.api-sports.io/fixtures?live=all", { headers }),
+            fetch(`https://v3.football.api-sports.io/fixtures?date=${getToday()}`, { headers })
+        ]);
+
+        const liveData = await liveRes.json();
+        const todayData = await todayRes.json();
+
+        allMatches.live = liveData.response || [];
+        const todayAll = todayData.response || [];
+        allMatches.today = todayAll.filter(m => m.fixture.status.short === 'NS');
+        allMatches.finished = todayAll.filter(m => ['FT','AET','PEN'].includes(m.fixture.status.short));
+
+        renderScores();
+    } catch(e) {
+        document.getElementById('scoreList').innerHTML = `
+            <div class="score-empty">❌ Bağlantı hatası. API key veya internet bağlantısını kontrol edin.
+            <button class="refresh-btn" onclick="fetchScores()">🔄 Tekrar Dene</button></div>`;
+    }
+}
+
+function renderScores() {
+    const scoreBox = document.getElementById('scoreList');
+    const matches = allMatches[currentTab];
+    scoreBox.innerHTML = '';
+
+    if (!matches || matches.length === 0) {
+        const msgs = {
+            live: 'Şu an canlı maç yok.',
+            today: 'Bugün başlamamış planlanmış maç yok.',
+            finished: 'Bugün biten maç bulunamadı.'
+        };
+        scoreBox.innerHTML = `<div class="score-empty">${msgs[currentTab]}<button class="refresh-btn" onclick="fetchScores()">🔄 Yenile</button></div>`;
+        return;
+    }
+
+    matches.slice(0, 12).forEach(m => {
+        const g = document.createElement('div');
+        g.className = 'match-group';
+
+        const home = m.teams?.home?.name || '?';
+        const away = m.teams?.away?.name || '?';
+        const hGoal = m.goals?.home ?? '-';
+        const aGoal = m.goals?.away ?? '-';
+        const elapsed = m.fixture?.status?.elapsed;
+        const short = m.fixture?.status?.short;
+        const league = m.league?.name || '';
+
+        let timeLabel = '', timeClass = '';
+        if (short === 'NS') {
+            const t = new Date(m.fixture.date);
+            timeLabel = t.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
+            timeClass = 'ns';
+        } else if (short === 'HT') {
+            timeLabel = 'HT';
+        } else if (['FT','AET','PEN'].includes(short)) {
+            timeLabel = 'MS'; timeClass = 'ft';
+        } else {
+            timeLabel = `${elapsed || '?'}'`;
+        }
+
+        g.innerHTML = `
+            <div class="match-league">${league}</div>
+            <div class="score-item">
+                <div class="match-time ${timeClass}">${timeLabel}</div>
+                <div class="match-teams">
+                    <span class="team home">${home}</span>
+                    <span class="match-score">${hGoal} - ${aGoal}</span>
+                    <span class="team away">${away}</span>
+                </div>
+            </div>`;
+        scoreBox.appendChild(g);
+    });
+}
+
+function switchTab(tab, el) {
+    currentTab = tab;
+    document.querySelectorAll('.score-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    renderScores();
+}
+
+function init() {
+    const box = document.getElementById('channelBox');
+    document.getElementById('chanCount').innerText = `${kanallar.length} Kanal Mevcut`;
+    kanallar.forEach((k, i) => {
+        const div = document.createElement('div');
+        div.className = 'channel-item' + (i === 0 ? ' active' : '');
+        div.innerHTML = `
+            <img src="${k.logo}" class="ch-logo" onerror="this.src='https://via.placeholder.com/60x40?text=TV'">
+            <span class="ch-name">${k.ad}</span>
+            <span class="live-dot"></span>`;
+        div.onclick = () => play(k.url, div, k.ad, k.logo);
+        box.appendChild(div);
+    });
+    play(kanallar[0].url, document.querySelector('.channel-item'), kanallar[0].ad, kanallar[0].logo);
+    fetchScores();
+    setInterval(fetchScores, 60000);
+}
+
+function play(url, el, name, logo) {
+    document.querySelectorAll('.channel-item').forEach(c => c.classList.remove('active'));
+    if(el) el.classList.add('active');
+    if(name) activeName.innerText = name;
+    if(logo) activeLogo.src = logo;
+    const src = url.includes('https') ? url : atob(url);
+    if (hls) hls.destroy();
+    if (Hls.isSupported()) {
+        hls = new Hls(); hls.loadSource(src); hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+    }
+}
+
+const fitModes = ['fill','contain','cover'];
+let currentFit = 0;
+function toggleFit() { currentFit = (currentFit+1)%3; video.style.objectFit = fitModes[currentFit]; }
+
+async function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+        try {
+            await (container.requestFullscreen || container.webkitRequestFullscreen).call(container);
+            video.style.objectFit = 'fill';
+            if (screen.orientation?.lock) await screen.orientation.lock('landscape').catch(()=>{});
+        } catch(e) {}
+    } else { document.exitFullscreen?.(); }
+}
+
+document.getElementById('menuToggle').onclick = (e) => { e.stopPropagation(); document.getElementById('dropdown').classList.toggle('show'); };
+document.getElementById('colorBtn').onclick = (e) => { e.stopPropagation(); document.getElementById('palette').classList.toggle('show'); };
+document.body.onclick = () => { document.getElementById('dropdown').classList.remove('show'); document.getElementById('palette').classList.remove('show'); };
+
+function setTheme(c) { document.documentElement.style.setProperty('--accent', c); }
+function setFilt(c) { video.className = c; }
+function toggleFilters() { document.getElementById('filterPanel').classList.toggle('show'); }
+function filterChannels(q) {
+    let count = 0;
+    document.querySelectorAll('.channel-item').forEach(item => {
+        const match = item.innerText.toLowerCase().includes(q.toLowerCase());
+        item.style.display = match ? 'flex' : 'none';
+        if(match) count++;
+    });
+    document.getElementById('chanCount').innerText = `${count} Kanal Bulundu`;
+}
+function takeSnap() {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const a = document.createElement('a'); a.download = 'iptv-ss.png'; a.href = canvas.toDataURL(); a.click();
+}
+
+window.onload = init;
+</script>
+
+<script>
+/* ===================== EVB IPTV v7 — eklenti katmanı (ana kod yukarıda aynen duruyor) ===================== */
+window.onload = null;                      // orijinal init() yerine aşağıdaki main() çalışır; orijinal fonksiyonlar kullanılmaya devam eder
+const $ = id => document.getElementById(id), qs = s => document.querySelector(s), qsa = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const LS = { g(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } }, s(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const uid = () => Math.random().toString(36).slice(2, 9);
+const PH = 'https://via.placeholder.com/60x40?text=TV';
+const isHttp = u => /^https?:\/\/\S{3,}$/i.test(String(u || '').trim());
+const toPlay = u => u.includes('https') ? u : btoa(encodeURI(u));     // orijinal play() düz https veya base64 bekler
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2600); }
+function status(txt, spin = true, retry = false) { $('status').classList.toggle('show', !!txt); $('statusText').textContent = txt || ''; $('spin').style.display = spin ? '' : 'none'; $('retryBtn').style.display = retry ? '' : 'none'; }
+
+/* ---------- Android TV algılama (yalnızca Android TV / TV box ya da ?tv=1) ---------- */
+const UA = navigator.userAgent, P = new URLSearchParams(location.search), tvPref = LS.g('evb.tv', 'auto');
+const autoTV = /Android/i.test(UA) && (/(\bTV\b|AFT[A-Z]|BRAVIA|SHIELD|MiBOX|Box|X96|H96|T95|TX[0-9]|MXQ|GoogleTV|Leanback|Chromecast)/i.test(UA) || (!navigator.maxTouchPoints && Math.max(screen.width, screen.height) >= 1280));
+const IS_TV = P.get('tv') === '1' || (P.get('tv') !== '0' && (tvPref === 'on' || (tvPref === 'auto' && autoTV)));
+if (IS_TV) { document.documentElement.classList.add('tv'); document.body.classList.add('tv'); }
+currentFit = 1;                                                  // varsayılan "sığdır"; 1. dokunuşta kırp, sonra doldur
+
+/* ---------- Veri katmanı: kanallar + kategoriler (yönetim paneli bunu düzenler) ---------- */
+const SEED = kanallar.map(k => ({ ad: k.ad, url: /^https?:/i.test(k.url) ? k.url : atob(k.url), logo: k.logo }));
+const DEF_SET = { name: 'EVB IPTV', ticker: "EVB IPTV'ye Hoş Geldiniz ——— İyi seyirler ——— Her gün güncel kanallar!", view: 'list', admin: true, resume: true };
+let D = null;
+const seed = () => ({ cats: [{ name: 'Spor', icon: '⚽' }, { name: 'Ulusal', icon: '📺' }, { name: 'Genel', icon: '📁' }], channels: SEED.map(k => ({ id: uid(), ad: k.ad, url: k.url, logo: k.logo, cat: /^TRT/i.test(k.ad) ? 'Ulusal' : 'Spor', hidden: false })), set: { ...DEF_SET } });
+function norm(x) {
+    const o = { cats: [], channels: [], set: { ...DEF_SET, ...((x && x.set) || {}) } };
+    (x.cats || []).forEach(c => { const n = String(c && c.name || '').trim().slice(0, 30); if (n && !o.cats.find(y => y.name === n)) o.cats.push({ name: n, icon: String(c.icon || '📁').slice(0, 4), lock: !!c.lock }); });
+    (x.channels || []).forEach(c => {
+        const url = String(c && c.url || '').trim(); if (!isHttp(url)) return;
+        const cat = String(c.cat || 'Genel').trim().slice(0, 30) || 'Genel'; if (!o.cats.find(y => y.name === cat)) o.cats.push({ name: cat, icon: '📁' });
+        o.channels.push({ id: String(c.id || uid()).slice(0, 20), ad: String(c.ad || 'Kanal').trim().slice(0, 60) || 'Kanal', url, logo: isHttp(c.logo) ? String(c.logo).trim() : '', cat, hidden: !!c.hidden });
+    });
+    if (!o.cats.length) o.cats.push({ name: 'Genel', icon: '📁' });
+    return o;
+}
+async function loadData() {
+    let x = LS.g('evb.data', null);
+    if (!x && /^https?:$/.test(location.protocol)) { try { const r = await fetch('channels.json?' + Date.now(), { cache: 'no-store' }); if (r.ok) { const j = await r.json(); if (j && Array.isArray(j.channels)) x = j; } } catch {} }
+    D = norm(x || seed());
+}
+const save = () => LS.s('evb.data', D);
+const ensureCat = (n, icon) => { if (!D.cats.find(c => c.name === n)) D.cats.push({ name: n, icon: icon || '📁' }); };
+
+/* ---------- Durum ---------- */
+let sel = LS.g('evb.sel', 'all'), query = '', view = LS.g('evb.view', null), favs = new Set(LS.g('evb.favs', [])), recent = LS.g('evb.recent', []), hitsC = LS.g('evb.hits', {});
+let cur = null, prevId = null, curSrc = '', retries = 0, air = false, castOn = false, castCtx = null, sleepT = null, wake = null, goalAlert = LS.g('evb.goal', true), prevGoals = {};
+const unlocked = new Set();
+const visCh = () => D.channels.filter(c => !c.hidden);
+const isLocked = n => { const c = D.cats.find(x => x.name === n); return !!(c && c.lock && !unlocked.has(n)); };
+const pool = () => visCh().filter(c => !isLocked(c.cat));
+const catIcon = n => (D.cats.find(c => c.name === n) || {}).icon || '📁';
+
+function listFor() {
+    let a = pool(); const q = query.toLowerCase();
+    if (q) return a.filter(c => (c.ad + ' ' + c.cat).toLowerCase().includes(q));
+    if (sel === 'fav') return a.filter(c => favs.has(c.id));
+    if (sel === 'recent') return recent.map(id => a.find(c => c.id === id)).filter(Boolean);
+    if (sel === 'top') return a.filter(c => hitsC[c.id]).sort((x, y) => hitsC[y.id] - hitsC[x.id]).slice(0, 30);
+    if (sel.startsWith('c:')) return visCh().filter(c => c.cat === sel.slice(2));
+    return a;
+}
+function catItems() {
+    const v = pool(), it = [{ k: 'all', n: 'Tümü', i: '📺', c: v.length }, { k: 'fav', n: 'Favoriler', i: '⭐', c: v.filter(c => favs.has(c.id)).length }, { k: 'recent', n: 'Son izlenen', i: '🕘', c: recent.filter(id => v.find(c => c.id === id)).length }];
+    if (Object.keys(hitsC).length) it.push({ k: 'top', n: 'En çok izlenen', i: '🔥', c: Math.min(30, v.filter(c => hitsC[c.id]).length) });
+    it.push({ sep: 1 }); D.cats.forEach(c => it.push({ k: 'c:' + c.name, n: c.name, i: c.icon || '📁', c: visCh().filter(x => x.cat === c.name).length, lock: c.lock && !unlocked.has(c.name) }));
+    return it;
+}
+function renderCats() {
+    const it = catItems();
+    $('catList').innerHTML = it.map(x => x.sep ? '<div class="cat-sep"></div>' : `<button class="cat-btn${x.k === sel ? ' on' : ''}" data-k="${esc(x.k)}">${esc(x.i)} <span>${esc(x.n)}${x.lock ? ' 🔒' : ''}</span><span class="n">${x.c}</span></button>`).join('');
+    $('chips').innerHTML = '<button class="chip" data-k="__sheet">☰ Hepsi</button>' + it.filter(x => !x.sep).map(x => `<button class="chip${x.k === sel ? ' active' : ''}" data-k="${esc(x.k)}">${esc(x.i)} ${esc(x.n)}${x.lock ? ' 🔒' : ''}</button>`).join('');
+    $('catSheet').innerHTML = $('catList').innerHTML;
+}
+function renderChannels() {
+    const list = listFor(), box = $('channelBox'), nums = new Map(visCh().map((c, i) => [c.id, i + 1]));
+    box.classList.toggle('grid', view === 'grid'); $('viewBtn').textContent = view === 'grid' ? '☰ Liste görünümü' : '▦ Kart görünümü';
+    $('chanCount').textContent = `${list.length} kanal`;
+    if (!list.length) { box.innerHTML = `<div class="empty">${query ? 'Sonuç bulunamadı.' : visCh().length ? 'Bu bölümde kanal yok.' : 'Henüz kanal yok.'}${!visCh().length ? '<button class="btn on" onclick="openAdmin()">⚙️ Yönetimden kanal ekle</button>' : ''}</div>`; return; }
+    box.innerHTML = list.slice(0, 800).map(c => `<div class="channel-item${cur && cur.id === c.id ? ' active' : ''}" tabindex="0" role="button" data-id="${c.id}"><span class="ci-n">${nums.get(c.id)}</span><img class="ch-logo" loading="lazy" src="${esc(c.logo || PH)}" alt="" onerror="this.onerror=null;this.src=PH"><div class="ci-t"><span class="ch-name">${esc(c.ad)}</span><small>${esc(catIcon(c.cat))} ${esc(c.cat)}</small></div><span class="live-dot"></span><button class="star${favs.has(c.id) ? ' on' : ''}" data-fav="${c.id}" tabindex="-1" aria-label="Favori">${favs.has(c.id) ? '★' : '☆'}</button></div>`).join('');
+}
+function renderAll() {
+    if (sel.startsWith('c:')) { const cc = D.cats.find(c => c.name === sel.slice(2)); if (!cc || (cc.lock && !unlocked.has(cc.name))) sel = 'all'; }
+    renderCats(); renderChannels(); updFav();
+}
+function applySettings() {
+    const w = D.set.name.trim().split(/\s+/), last = w.pop() || '';
+    $('logoText').innerHTML = (w.length ? esc(w.join(' ')) + ' ' : '') + '<b>' + esc(last) + '</b>'; document.title = D.set.name;
+    $('ticker').textContent = D.set.ticker; $('menuAdmin').hidden = !(D.set.admin || P.get('admin') === '1');
+    if (!view) view = D.set.view || 'list';
+}
+function pickCat(k) {
+    if (k === '__sheet') { $('catDlg').showModal(); return; }
+    const name = k.startsWith('c:') ? k.slice(2) : null, cat = name && D.cats.find(c => c.name === name);
+    if (cat && cat.lock && !unlocked.has(name)) { askPin(() => { unlocked.add(name); pickCat(k); }); return; }
+    sel = k; LS.s('evb.sel', k); query = ''; $('search').value = ''; if ($('catDlg').open) $('catDlg').close(); renderAll();
+}
+['catList', 'chips', 'catSheet'].forEach(id => $(id).addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b) pickCat(b.dataset.k); }));
+$('search').addEventListener('input', e => { query = e.target.value.trim(); renderChannels(); });
+$('channelBox').addEventListener('click', e => {
+    const f = e.target.closest('[data-fav]'); if (f) { e.stopPropagation(); toggleFav(f.dataset.fav); return; }
+    const it = e.target.closest('.channel-item'); if (it) { const c = D.channels.find(x => x.id === it.dataset.id); if (c) playCh(c); }
+});
+function toggleView() { view = view === 'grid' ? 'list' : 'grid'; LS.s('evb.view', view); renderChannels(); }
+$('viewBtn').onclick = toggleView;
+$('mobTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; document.body.dataset.tab = b.dataset.tab; qsa('#mobTabs button').forEach(x => x.classList.toggle('on', x === b)); });
+
+/* ---------- Oynatma (orijinal play() çalışır, üstüne dayanıklılık eklenir) ---------- */
+const _play = play;
+play = function (url, el, name, logo) {
+    retries = 0; air = false; curSrc = url.includes('https') ? url : atob(url);
+    status('Bağlanıyor…'); $('qualBox').innerHTML = '<span class="tp-label">Yayın yüklenince görünür.</span>';
+    _play(url, el, name, logo);
+    if (Hls.isSupported() && hls) hookHls(); else if (video.canPlayType('application/vnd.apple.mpegurl')) { video.src = curSrc; video.play().catch(() => {}); }
+    if ('mediaSession' in navigator && cur) navigator.mediaSession.metadata = new MediaMetadata({ title: cur.ad, artist: D.set.name, artwork: cur.logo ? [{ src: cur.logo }] : [] });
+    if (castOn) castLoad();
+};
+function hookHls() {
+    hls.on(Hls.Events.MANIFEST_PARSED, (e, d) => buildQuality(d.levels));
+    hls.on(Hls.Events.ERROR, (e, d) => {
+        if (!d.fatal) return;
+        if (d.type === Hls.ErrorTypes.NETWORK_ERROR && retries < 3) { retries++; status(`Bağlantı koptu, yeniden deneniyor (${retries}/3)…`); setTimeout(() => hls && hls.startLoad(), 1500 * retries); }
+        else if (d.type === Hls.ErrorTypes.MEDIA_ERROR && retries < 3) { retries++; hls.recoverMediaError(); }
+        else status('Yayın açılamadı. Kanal şu an kapalı olabilir.', false, true);
+    });
+}
+function playCh(c, silent) {
+    if (cur && cur.id !== c.id) prevId = cur.id;
+    cur = c; LS.s('evb.last', c.id); recent = [c.id, ...recent.filter(x => x !== c.id)].slice(0, 20); LS.s('evb.recent', recent);
+    hitsC[c.id] = (hitsC[c.id] || 0) + 1; LS.s('evb.hits', hitsC);
+    const el = qsa('.channel-item').find(e => e.dataset.id === c.id);
+    play(toPlay(c.url), el, c.ad, c.logo); osd(c); updFav(); if (!silent) renderCats();
+}
+function retryStream() { retries = 0; if (cur) playCh(cur, true); }
+function zap(d) { const p = pool(); if (!p.length) return; const i = p.findIndex(x => cur && x.id === cur.id); playCh(p[(i + d + p.length) % p.length]); (qs('.channel-item.active') || {}).scrollIntoView?.({ block: 'nearest' }); }
+function backCh() { const c = prevId && pool().find(x => x.id === prevId); if (c) playCh(c); else toast('Önceki kanal yok'); }
+function goLive() { if (hls && hls.liveSyncPosition) { video.currentTime = hls.liveSyncPosition; toast('Canlıya atlandı'); } }
+function osd(c) { const n = visCh().findIndex(x => x.id === c.id) + 1; $('osd').innerHTML = `${n ? '<b>' + n + '</b> · ' : ''}${esc(c.ad)}<small>${esc(catIcon(c.cat))} ${esc(c.cat)}</small>`; flashOsd(); }
+function osdText(t) { $('osd').textContent = t; flashOsd(); }
+function flashOsd() { const o = $('osd'); o.classList.add('show'); clearTimeout(flashOsd.t); flashOsd.t = setTimeout(() => o.classList.remove('show'), 3200); }
+video.addEventListener('playing', () => status(''));
+video.addEventListener('waiting', () => { if (!video.paused && !castOn) status('Arabelleğe alınıyor…'); });
+let wd = null;
+video.addEventListener('waiting', () => { clearTimeout(wd); wd = setTimeout(() => { if (!video.paused && !castOn && video.readyState < 3) retryStream(); }, 15000); });
+['playing', 'pause'].forEach(ev => video.addEventListener(ev, () => clearTimeout(wd)));
+addEventListener('online', () => { toast('İnternet geri geldi'); retryStream(); });
+video.addEventListener('dblclick', toggleFullScreen);
+video.volume = LS.g('evb.vol', 1); video.addEventListener('volumechange', () => LS.s('evb.vol', video.volume));
+function buildQuality(levels) {
+    const b = $('qualBox');
+    if (!levels || levels.length < 2) { b.innerHTML = '<span class="tp-label">Bu yayında tek kalite var.</span>'; return; }
+    b.innerHTML = '<button class="btn on" data-l="-1">Otomatik</button>' + levels.map((l, i) => `<button class="btn" data-l="${i}">${l.height ? l.height + 'p' : Math.round(l.bitrate / 1000) + ' kbps'}</button>`).join('');
+}
+$('qualBox').addEventListener('click', e => { const b = e.target.closest('[data-l]'); if (!b || !hls) return; hls.currentLevel = +b.dataset.l; qsa('#qualBox .btn').forEach(x => x.classList.toggle('on', x === b)); });
+setInterval(() => {
+    if (!hls || video.paused || !hls.levels || castOn) { $('netInfo').textContent = castOn ? '📺 TV\'de' : ''; return; }
+    const l = hls.levels[hls.currentLevel], buf = video.buffered.length ? video.buffered.end(video.buffered.length - 1) - video.currentTime : 0;
+    $('netInfo').textContent = `${l && l.height ? l.height + 'p · ' : ''}${buf.toFixed(1)} sn`;
+}, 2000);
+
+/* ---------- Favoriler, paneller, araçlar ---------- */
+function updFav() { const f = cur && favs.has(cur.id); $('bFav').querySelector('.i').textContent = f ? '★' : '☆'; $('bFav').classList.toggle('on', !!f); }
+function toggleFav(id) { favs.has(id) ? favs.delete(id) : favs.add(id); LS.s('evb.favs', [...favs]); renderCats(); renderChannels(); updFav(); }
+function toggleFavNow() { if (cur) { toggleFav(cur.id); toast(favs.has(cur.id) ? 'Favorilere eklendi' : 'Favorilerden çıkarıldı'); } }
+function pOn(b) { b.parentNode.querySelectorAll('.btn').forEach(x => x.classList.toggle('on', x === b)); }
+qsa('.gbtn[data-p]').forEach(b => b.onclick = () => { const id = b.dataset.p; ['pFilter', 'pQual', 'pTools'].forEach(p => $(p).classList.toggle('show', p === id && !$(p).classList.contains('show'))); });
+function pip() { if (video.requestPictureInPicture) video.requestPictureInPicture().catch(() => toast('Pencere modu desteklenmiyor')); else toast('Pencere modu desteklenmiyor'); }
+$('sleepSel').onchange = e => { clearTimeout(sleepT); const m = +e.target.value; if (m) { sleepT = setTimeout(() => { video.pause(); toast('Uyku zamanlayıcı: yayın durduruldu'); e.target.value = '0'; }, m * 60000); toast(`${m} dk sonra durdurulacak`); } };
+async function toggleWake() {
+    try { if (wake) { await wake.release(); wake = null; $('wlBtn').textContent = 'Ekran açık kalsın: Kapalı'; $('wlBtn').classList.remove('on'); } else { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); $('wlBtn').textContent = 'Ekran açık kalsın: Açık'; $('wlBtn').classList.add('on'); } }
+    catch { toast('Bu cihaz ekran kilidi tutmayı desteklemiyor'); }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && $('wlBtn').classList.contains('on') && !wake) toggleWake(); });
+function toggleGoal() { goalAlert = !goalAlert; LS.s('evb.goal', goalAlert); $('goalBtn').textContent = 'Gol bildirimi: ' + (goalAlert ? 'Açık' : 'Kapalı'); $('goalBtn').classList.toggle('on', goalAlert); }
+const _fs = fetchScores;
+fetchScores = async function () {
+    await _fs();
+    (allMatches.live || []).forEach(m => { const id = m.fixture.id, h = m.goals?.home ?? 0, a = m.goals?.away ?? 0, t = h + a; if (goalAlert && id in prevGoals && t > prevGoals[id]) { toast(`⚽ GOL! ${m.teams.home.name} ${h}-${a} ${m.teams.away.name}`); navigator.vibrate && navigator.vibrate([200, 100, 200]); } prevGoals[id] = t; });
+};
+const _st = setTheme; setTheme = function (c) { _st(c); LS.s('evb.theme', c); };
+
+/* ---------- Paylaş (siteyi paylaşır) ---------- */
+const siteUrl = () => /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/index\.html$/, '') : '';
+function shareLink() {
+    const u = siteUrl(); $('shareUrl').value = u || '(site yayınlanınca bağlantı burada görünür)'; $('qr').replaceChildren();
+    if (u && window.QRCode) { new QRCode($('qr'), { text: u, width: 150, height: 150 }); $('qr').style.display = 'grid'; } else $('qr').style.display = 'none';
+    $('shareNote').textContent = u ? '' : 'Bu sayfa dosya olarak açık. Siteyi bir adreste yayınlayınca paylaşılacak bağlantı burada görünür.'; $('shareDlg').showModal();
+}
+async function sysShare() { const u = siteUrl(); if (!u) return toast('Önce siteyi yayınlayın'); try { if (navigator.share) await navigator.share({ title: D.set.name, text: D.set.name + ' – canlı TV', url: u }); else copyLink(); } catch {} }
+async function copyLink() { const u = siteUrl(); if (!u) return toast('Önce siteyi yayınlayın'); try { await navigator.clipboard.writeText(u); toast('Bağlantı kopyalandı'); } catch { $('shareUrl').select(); toast('Seçildi, kopyalayın'); } }
+function shareTo(k) { const u = siteUrl(); if (!u) return toast('Önce siteyi yayınlayın'); const t = D.set.name + ' – canlı TV'; open(k === 'wa' ? `https://wa.me/?text=${encodeURIComponent(t + ' ' + u)}` : `https://t.me/share/url?url=${encodeURIComponent(u)}&text=${encodeURIComponent(t)}`, '_blank', 'noopener'); }
+
+/* ---------- TV'ye aktar (Chromecast / AirPlay) ---------- */
+window.__onGCastApiAvailable = ok => {
+    if (!ok) return;
+    try {
+        castCtx = cast.framework.CastContext.getInstance();
+        castCtx.setOptions({ receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID, autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED });
+        castCtx.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, e => {
+            const S = cast.framework.SessionState;
+            if (e.sessionState === S.SESSION_STARTED || e.sessionState === S.SESSION_RESUMED) { castOn = true; castLoad(); }
+            else if (e.sessionState === S.SESSION_ENDED) { castOn = false; toast('TV bağlantısı kapandı'); retryStream(); }
+        });
+    } catch { castCtx = null; }
+};
+function castLoad() {
+    const s = castCtx && castCtx.getCurrentSession(); if (!s || !curSrc || !cur) return;
+    const mi = new chrome.cast.media.MediaInfo(curSrc, 'application/x-mpegURL'); mi.streamType = chrome.cast.media.StreamType.LIVE;
+    mi.metadata = new chrome.cast.media.GenericMediaMetadata(); mi.metadata.title = cur.ad; if (cur.logo) mi.metadata.images = [new chrome.cast.Image(cur.logo)];
+    status('TV\'ye gönderiliyor…');
+    s.loadMedia(new chrome.cast.media.LoadRequest(mi)).then(() => { video.pause(); if (hls) hls.stopLoad(); status(''); toast('TV\'de oynuyor 📺'); }, () => { castOn = false; s.endSession(true); status(''); toast('Bu yayın TV\'de açılamadı (kaynak izin vermiyor olabilir)'); });
+}
+function castTV() {
+    $('coCast').classList.toggle('off', !castCtx); $('coCastS').textContent = castCtx ? "Aynı Wi-Fi'daki cihazlara gönder" : 'Chrome ve https gerekir';
+    $('coAir').classList.toggle('off', !video.webkitShowPlaybackTargetPicker); $('castDlg').showModal();
+}
+async function castPick(k) {
+    if (k === 'cast') { if (!castCtx) return toast('Chromecast için Chrome ve https gerekir'); $('castDlg').close(); if (castOn) { castCtx.endCurrentSession(true); return; } try { await castCtx.requestSession(); } catch (e) { if (e !== 'cancel') toast("Cihaz bulunamadı. Aynı Wi-Fi'da olduğundan emin ol."); } }
+    else { if (!video.webkitShowPlaybackTargetPicker) return toast("AirPlay sadece iPhone/iPad Safari'de var"); $('castDlg').close(); if (hls) { hls.destroy(); hls = null; } air = true; video.src = curSrc; video.play().catch(() => {}); video.webkitShowPlaybackTargetPicker(); }
+}
+video.addEventListener('webkitcurrentplaybacktargetiswirelesschanged', () => { if (air && !video.webkitCurrentPlaybackTargetIsWireless) { air = false; retryStream(); } });
+
+/* ---------- Küçük pencereler ---------- */
+let pinCb = null, cfCb = null;
+function askPin(cb) { pinCb = cb; $('pinIn').value = ''; $('pinErr').textContent = ''; $('pinDlg').showModal(); $('pinIn').focus(); }
+$('pinOk').onclick = () => { if ($('pinIn').value === String(LS.g('evb.pin', '123456'))) { $('pinDlg').close(); const f = pinCb; pinCb = null; f && f(); } else $('pinErr').textContent = 'Şifre yanlış'; };
+$('pinIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('pinOk').click(); });
+function ask(msg, cb) { $('cfMsg').textContent = msg; cfCb = cb; $('cfDlg').showModal(); }
+$('cfOk').onclick = () => { $('cfDlg').close(); const f = cfCb; cfCb = null; f && f(); };
+$('cfNo').onclick = () => $('cfDlg').close();
+
+/* ---------- YÖNETİM PANELİ ---------- */
+let admOK = false, aTab = 'chn', aQ = '', aF = '', aSel = new Set(), editId = null;
+function openAdmin() { $('dropdown').classList.remove('show'); if (admOK) return admOpen(); askPin(() => { admOK = true; admOpen(); }); }
+function admOpen() { $('adm').showModal(); admRender(); }
+$('menuAdmin').onclick = openAdmin;
+$('logo').addEventListener('click', e => { if (e.detail === 3) openAdmin(); });
+$('admNav').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if (!b) return; aTab = b.dataset.t; admRender(); });
+function admRender() { qsa('#admNav button[data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === aTab)); ({ chn: admChn, cat: admCat, set: admSet, bak: admBak })[aTab](); }
+function commit() { save(); renderAll(); }
+const opts = (arr, s) => arr.map(x => `<option${x === s ? ' selected' : ''}>${esc(x)}</option>`).join('');
+
+function admChn() {
+    $('admBody').innerHTML = `<div class="a-bar"><input id="aq" class="in" placeholder="Kanal ara…" value="${esc(aQ)}"><select id="af" class="in"><option value="">Tüm kategoriler</option>${opts(D.cats.map(c => c.name), aF)}</select><button class="btn on" data-a="add">＋ Kanal ekle</button></div><div id="aBulk"></div><div class="a-meta" id="aMeta"></div><div id="aRows" class="a-rows"></div>`;
+    admRows();
+}
+function admRows() {
+    const list = D.channels.filter(c => (!aF || c.cat === aF) && (!aQ || (c.ad + ' ' + c.url).toLowerCase().includes(aQ.toLowerCase())));
+    $('aMeta').textContent = `${list.length} / ${D.channels.length} kanal${list.length > 300 ? ' (ilk 300 gösteriliyor, aramayı daraltın)' : ''}`;
+    $('aRows').innerHTML = list.slice(0, 300).map(c => `<div class="a-row${c.hidden ? ' dim' : ''}"><input type="checkbox" data-sel="${c.id}"${aSel.has(c.id) ? ' checked' : ''}><img src="${esc(c.logo || PH)}" alt="" onerror="this.onerror=null;this.src=PH"><div class="a-t"><b>${esc(c.ad)}</b><small title="${esc(c.url)}">${esc(c.url)}</small></div><select class="in" data-cat="${c.id}">${opts(D.cats.map(x => x.name), c.cat)}</select><div class="a-btns"><button data-a="up" data-id="${c.id}" title="Yukarı">↑</button><button data-a="down" data-id="${c.id}" title="Aşağı">↓</button><button data-a="eye" data-id="${c.id}" title="Göster/gizle">${c.hidden ? '🚫' : '👁'}</button><button data-a="edit" data-id="${c.id}" title="Düzenle">✎</button><button class="d" data-a="del" data-id="${c.id}" title="Sil">🗑</button></div></div>`).join('') || '<p class="muted">Kanal yok. "＋ Kanal ekle" ile başlayın veya Yedek sekmesinden M3U içe aktarın.</p>';
+    $('aBulk').innerHTML = aSel.size ? `<div class="a-bulk"><b>${aSel.size} seçili</b><select id="bulkCat" class="in" style="width:auto">${opts(D.cats.map(c => c.name))}</select><button class="btn sm" data-a="bMove">Taşı</button><button class="btn sm" data-a="bHide">Gizle</button><button class="btn sm" data-a="bShow">Göster</button><button class="btn sm danger" data-a="bDel">Sil</button><button class="btn sm" data-a="bClear">Seçimi kaldır</button></div>` : '';
+}
+function moveCh(id, dir) {
+    const vis = D.channels.filter(c => (!aF || c.cat === aF) && (!aQ || (c.ad + ' ' + c.url).toLowerCase().includes(aQ.toLowerCase())));
+    const i = vis.findIndex(c => c.id === id), j = i + dir; if (j < 0 || j >= vis.length) return;
+    const a = D.channels.indexOf(vis[i]), b = D.channels.indexOf(vis[j]); [D.channels[a], D.channels[b]] = [D.channels[b], D.channels[a]];
+}
+function chForm(id) {
+    editId = id || null; const c = id ? D.channels.find(x => x.id === id) : null;
+    $('chTitle').textContent = c ? 'Kanalı düzenle' : 'Yeni kanal'; $('cn').value = c ? c.ad : ''; $('cu').value = c ? c.url : ''; $('cl').value = c ? c.logo : '';
+    $('cc').innerHTML = opts(D.cats.map(x => x.name), c ? c.cat : aF); $('cnew').value = ''; $('ctr').textContent = ''; $('chDlg').showModal();
+}
+$('cSave').onclick = () => {
+    const ad = $('cn').value.trim(), url = $('cu').value.trim(), logo = $('cl').value.trim(), nc = $('cnew').value.trim().slice(0, 30);
+    if (!ad || !isHttp(url)) return void ($('ctr').textContent = 'Ad ve geçerli bir adres (http/https) gerekli.');
+    if (logo && !isHttp(logo)) return void ($('ctr').textContent = 'Logo adresi geçersiz.');
+    const cat = nc || $('cc').value || 'Genel'; ensureCat(cat);
+    if (editId) Object.assign(D.channels.find(x => x.id === editId), { ad, url, logo, cat }); else D.channels.push({ id: uid(), ad, url, logo, cat, hidden: false });
+    $('chDlg').close(); commit(); admRender(); toast('Kaydedildi');
+};
+function testStream(url) {
+    return new Promise(res => {
+        const v = document.createElement('video'); v.muted = true; let h, done = false;
+        const fin = r => { if (done) return; done = true; clearTimeout(t); try { h && h.destroy(); } catch {} v.removeAttribute('src'); v.load(); res(r); }, t = setTimeout(() => fin('timeout'), 9000);
+        if (window.Hls && Hls.isSupported()) { h = new Hls(); h.on(Hls.Events.MANIFEST_PARSED, () => fin('ok')); h.on(Hls.Events.ERROR, (e, d) => { if (d.fatal) fin('fail'); }); h.loadSource(url); h.attachMedia(v); }
+        else { v.src = url; v.onloadedmetadata = () => fin('ok'); v.onerror = () => fin('fail'); }
+    });
+}
+$('cTest').onclick = async () => { const u = $('cu').value.trim(); if (!isHttp(u)) return void ($('ctr').textContent = 'Önce geçerli adres girin.'); $('ctr').textContent = 'Test ediliyor…'; const r = await testStream(u); $('ctr').textContent = r === 'ok' ? '✅ Yayın açıldı, çalışıyor.' : r === 'timeout' ? '⏱ Yanıt gelmedi (kapalı olabilir).' : '❌ Açılamadı (adres hatalı veya erişim engelli).'; };
+
+function admCat() {
+    $('admBody').innerHTML = `<div class="a-sec"><h4>Yeni kategori</h4><div class="row"><input id="ncIcon" class="in" style="width:4rem;text-align:center" maxlength="4" placeholder="📁"><input id="ncName" class="in" placeholder="Kategori adı (örn: Haber, Sinema, Çocuk)" maxlength="30"><button class="btn on" data-a="catAdd">Ekle</button></div></div><div class="a-sec"><h4>Kategoriler (${D.cats.length})</h4><p class="muted">🔒 işaretli kategoriler yönetici şifresi olmadan açılmaz (çocuk kilidi).</p><div class="a-rows">${D.cats.map((c, i) => `<div class="a-row"><input class="in ico" data-ci="${i}" data-f="icon" value="${esc(c.icon)}" maxlength="4"><input class="in grow" data-ci="${i}" data-f="name" value="${esc(c.name)}" maxlength="30"><label class="chk"><input type="checkbox" data-ci="${i}" data-f="lock"${c.lock ? ' checked' : ''}>🔒</label><span class="muted">${D.channels.filter(x => x.cat === c.name).length} kanal</span><div class="a-btns"><button data-a="catUp" data-i="${i}">↑</button><button data-a="catDown" data-i="${i}">↓</button><button class="d" data-a="catDel" data-i="${i}">🗑</button></div></div>`).join('')}</div></div>`;
+}
+function admSet() {
+    $('admBody').innerHTML = `<div class="a-sec"><h4>Site</h4><label>Site adı</label><input id="sName" class="in" value="${esc(D.set.name)}" maxlength="30"><label>Üstte kayan yazı</label><input id="sTicker" class="in" value="${esc(D.set.ticker)}" maxlength="200"><label>Varsayılan kanal görünümü</label><select id="sView" class="in"><option value="list"${D.set.view === 'list' ? ' selected' : ''}>Liste</option><option value="grid"${D.set.view === 'grid' ? ' selected' : ''}>Kart</option></select></div>
+<div class="a-sec"><h4>Davranış</h4><label class="chk"><input type="checkbox" id="sResume"${D.set.resume ? ' checked' : ''}> Açılışta son izlenen kanalı aç</label><label class="chk"><input type="checkbox" id="sAdmin"${D.set.admin ? ' checked' : ''}> Menüde "Yönetim paneli" görünsün (kapatırsan adresin sonuna <b>?admin=1</b> ekle veya logoya 3 kez dokun)</label></div>
+<div class="a-sec"><h4>Android TV modu</h4><select id="sTv" class="in"><option value="auto"${tvPref === 'auto' ? ' selected' : ''}>Otomatik (sadece Android TV / TV box'ta)</option><option value="on"${tvPref === 'on' ? ' selected' : ''}>Her zaman açık</option><option value="off"${tvPref === 'off' ? ' selected' : ''}>Kapalı</option></select><p class="muted">APK'da başlangıç adresine <b>?tv=1</b> eklersen her zaman TV modunda açılır.</p></div>
+<div class="a-sec"><h4>Yönetici şifresi</h4><div class="row"><input id="sPin" class="in" type="password" placeholder="Yeni şifre (en az 4 karakter)" autocomplete="new-password"><button class="btn on" data-a="pin">Kaydet</button></div><p class="muted">Not: Bu panel tarayıcıda çalışır; şifre bir sunucu güvenliği değil, yanlışlıkla değişiklikleri önleyen bir kilittir.</p></div>`;
+}
+function admBak() {
+    $('admBody').innerHTML = `<div class="a-sec"><h4>Yedekle / yayınla</h4><div class="row"><button class="btn on" data-a="exp">⬇ channels.json indir</button><button class="btn" data-a="impJ">⬆ JSON yükle</button></div><input type="file" id="fJson" accept=".json,application/json" hidden><p class="muted"><b>Herkese yayınlamak için:</b> indirdiğin dosyayı <b>channels.json</b> adıyla index.html'in yanına yükle. Yönetimde değişiklik yapmamış cihazlar listeyi oradan okur. Yönetimdeki değişiklikler yalnızca bu cihazda saklanır.</p></div>
+<div class="a-sec"><h4>M3U / IPTV listesi içe aktar</h4><label>Dosyadan</label><input type="file" id="fM3u" accept=".m3u,.m3u8,.txt,audio/x-mpegurl" class="in"><label>veya adresten</label><div class="row"><input id="m3u" class="in" placeholder="https://…/liste.m3u"><button class="btn" data-a="impU">Getir</button></div><label>veya yapıştır</label><textarea id="m3t" class="in" placeholder="#EXTM3U&#10;#EXTINF:-1 group-title=&quot;Spor&quot;,Kanal adı&#10;https://…"></textarea><label>Kategori</label><select id="m3c" class="in"><option value="group">Listedeki grup başlığından otomatik oluştur</option>${D.cats.map(c => `<option value="${esc(c.name)}">Hepsi → ${esc(c.name)}</option>`).join('')}</select><label class="chk"><input type="checkbox" id="m3r"> Önce mevcut tüm kanalları sil</label><div class="row"><button class="btn on" data-a="impT">İçe aktar</button></div></div>
+<div class="a-sec"><h4>Sıfırlama</h4><div class="row"><button class="btn danger" data-a="resetLocal">Yerel değişiklikleri sil (yayınlanan listeye dön)</button></div></div>`;
+}
+function parseM3U(t) {
+    const out = []; let m = null;
+    t.split(/\r?\n/).forEach(l => {
+        l = l.trim();
+        if (l.startsWith('#EXTINF')) { m = { ad: l.slice(l.lastIndexOf(',') + 1).trim() || (l.match(/tvg-name="([^"]*)"/) || [])[1] || 'Kanal', logo: (l.match(/tvg-logo="([^"]*)"/) || [])[1] || '', group: (l.match(/group-title="([^"]*)"/) || [])[1] || '' }; }
+        else if (l && !l.startsWith('#') && /^https?:\/\//i.test(l)) { out.push({ ad: m ? m.ad : l, url: l, logo: m && isHttp(m.logo) ? m.logo : '', group: m ? m.group : '' }); m = null; }
+    });
+    return out;
+}
+function importM3U(text) {
+    const list = parseM3U(text); if (!list.length) return toast('Listede kanal bulunamadı');
+    const mode = $('m3c').value; if ($('m3r').checked) D.channels = [];
+    const have = new Set(D.channels.map(c => c.url)); let n = 0;
+    list.forEach(x => { if (have.has(x.url)) return; const cat = (mode === 'group' ? (x.group || 'Genel') : mode).trim().slice(0, 30) || 'Genel'; ensureCat(cat); D.channels.push({ id: uid(), ad: x.ad.slice(0, 60), url: x.url, logo: x.logo, cat, hidden: false }); have.add(x.url); n++; });
+    commit(); admRender(); toast(`${n} kanal eklendi`);
+}
+function dl(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); }
+$('admBody').addEventListener('click', async e => {
+    const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a, id = b.dataset.id, i = +b.dataset.i;
+    if (a === 'add') chForm(); else if (a === 'edit') chForm(id);
+    else if (a === 'del') { const c = D.channels.find(x => x.id === id); ask(`"${c.ad}" silinsin mi?`, () => { D.channels = D.channels.filter(x => x.id !== id); aSel.delete(id); commit(); admRows(); }); }
+    else if (a === 'up' || a === 'down') { moveCh(id, a === 'up' ? -1 : 1); commit(); admRows(); }
+    else if (a === 'eye') { const c = D.channels.find(x => x.id === id); c.hidden = !c.hidden; commit(); admRows(); }
+    else if (a === 'bMove') { const cat = $('bulkCat').value; D.channels.forEach(c => { if (aSel.has(c.id)) c.cat = cat; }); aSel.clear(); commit(); admRows(); toast('Taşındı'); }
+    else if (a === 'bHide' || a === 'bShow') { D.channels.forEach(c => { if (aSel.has(c.id)) c.hidden = a === 'bHide'; }); aSel.clear(); commit(); admRows(); }
+    else if (a === 'bDel') ask(`${aSel.size} kanal silinsin mi?`, () => { D.channels = D.channels.filter(c => !aSel.has(c.id)); aSel.clear(); commit(); admRows(); });
+    else if (a === 'bClear') { aSel.clear(); admRows(); }
+    else if (a === 'catAdd') { const n = $('ncName').value.trim().slice(0, 30); if (!n) return toast('Kategori adı yazın'); if (D.cats.some(c => c.name === n)) return toast('Bu kategori zaten var'); D.cats.push({ name: n, icon: $('ncIcon').value.trim().slice(0, 4) || '📁' }); commit(); admCat(); toast('Kategori eklendi'); }
+    else if (a === 'catUp' || a === 'catDown') { const j = i + (a === 'catUp' ? -1 : 1); if (j >= 0 && j < D.cats.length) { [D.cats[i], D.cats[j]] = [D.cats[j], D.cats[i]]; commit(); admCat(); } }
+    else if (a === 'catDel') { const c = D.cats[i]; ask(`"${c.name}" silinsin mi? Kanalları "Genel" kategorisine taşınır.`, () => { if (D.cats.length > 1) { if (c.name !== 'Genel') ensureCat('Genel'); D.channels.forEach(x => { if (x.cat === c.name) x.cat = c.name === 'Genel' ? D.cats.find(y => y.name !== 'Genel').name : 'Genel'; }); D.cats = D.cats.filter(x => x.name !== c.name); commit(); admCat(); } else toast('En az bir kategori kalmalı'); }); }
+    else if (a === 'pin') { const p = $('sPin').value; if (p.length < 4) return toast('En az 4 karakter'); LS.s('evb.pin', p); $('sPin').value = ''; toast('Şifre değişti'); }
+    else if (a === 'exp') { dl('channels.json', JSON.stringify({ v: 1, cats: D.cats, channels: D.channels, set: D.set }, null, 1), 'application/json'); toast('channels.json indirildi'); }
+    else if (a === 'impJ') $('fJson').click();
+    else if (a === 'impU') { const u = $('m3u').value.trim(); if (!isHttp(u)) return toast('Geçerli adres girin'); try { const r = await fetch(u); if (!r.ok) throw 0; importM3U(await r.text()); } catch { toast('Liste alınamadı (erişim engeli olabilir). Dosyadan yüklemeyi deneyin.'); } }
+    else if (a === 'impT') { const t = $('m3t').value.trim(); if (!t) return toast('Önce liste yapıştırın'); importM3U(t); }
+    else if (a === 'resetLocal') ask('Bu cihazdaki tüm kanal/kategori değişiklikleri silinsin mi?', () => { localStorage.removeItem('evb.data'); location.reload(); });
+});
+$('admBody').addEventListener('change', async e => {
+    const t = e.target;
+    if (t.dataset.cat) { D.channels.find(c => c.id === t.dataset.cat).cat = t.value; commit(); }
+    else if (t.dataset.sel) { t.checked ? aSel.add(t.dataset.sel) : aSel.delete(t.dataset.sel); admRows(); }
+    else if (t.dataset.ci !== undefined) {
+        const i = +t.dataset.ci, c = D.cats[i], f = t.dataset.f;
+        if (f === 'icon') c.icon = t.value.slice(0, 4) || '📁'; else if (f === 'lock') c.lock = t.checked;
+        else if (f === 'name') { const n = t.value.trim().slice(0, 30); if (!n || D.cats.some((x, j) => j !== i && x.name === n)) { t.value = c.name; return toast('Geçersiz veya aynı isim var'); } D.channels.forEach(ch => { if (ch.cat === c.name) ch.cat = n; }); if (sel === 'c:' + c.name) sel = 'c:' + n; c.name = n; }
+        commit();
+    }
+    else if (t.id === 'af') { aF = t.value; admRows(); }
+    else if (t.id === 'sName') { D.set.name = t.value.trim() || 'EVB IPTV'; save(); applySettings(); }
+    else if (t.id === 'sTicker') { D.set.ticker = t.value; save(); applySettings(); }
+    else if (t.id === 'sView') { D.set.view = t.value; view = t.value; LS.s('evb.view', view); save(); renderChannels(); }
+    else if (t.id === 'sResume') { D.set.resume = t.checked; save(); }
+    else if (t.id === 'sAdmin') { D.set.admin = t.checked; save(); applySettings(); }
+    else if (t.id === 'sTv') { LS.s('evb.tv', t.value); toast('Sayfayı yenileyince geçerli olur'); }
+    else if (t.id === 'fJson' && t.files[0]) { try { const j = JSON.parse(await t.files[0].text()); if (!Array.isArray(j.channels)) throw 0; ask('Mevcut liste bu dosyayla değiştirilsin mi?', () => { D = norm(j); commit(); admRender(); toast('Yüklendi'); }); } catch { toast('Geçersiz JSON dosyası'); } t.value = ''; }
+    else if (t.id === 'fM3u' && t.files[0]) { importM3U(await t.files[0].text()); t.value = ''; }
+});
+$('admBody').addEventListener('input', e => { if (e.target.id === 'aq') { aQ = e.target.value; admRows(); } });
+
+/* ---------- ANDROID TV: kumanda, odak gezinmesi, tam ekran ---------- */
+function setFs(on) { document.body.classList.toggle('tvfs', on); if (on) $('videoContainer').focus(); else (qs('.channel-item.active') || qs('.cat-btn.on') || qs('button'))?.focus(); }
+function vol(d) { video.muted = false; video.volume = Math.max(0, Math.min(1, video.volume + d)); osdText('🔊 ' + Math.round(video.volume * 100) + '%'); }
+let dg = '', dgT = null;
+function digit(d) {
+    if (d === '0' && !dg) { backCh(); return; }
+    dg += d; osdText('Kanal ' + dg + '_'); clearTimeout(dgT);
+    dgT = setTimeout(() => { const n = +dg; dg = ''; const c = visCh()[n - 1]; if (c && !isLocked(c.cat)) playCh(c); else osdText('Kanal ' + n + ' yok'); }, 1400);
+}
+function spatial(dir, root) {
+    const scope = root || document, q = 'button:not([disabled]),input:not([type=hidden]),select,textarea,[tabindex="0"]';
+    const els = [...scope.querySelectorAll(q)].filter(el => { if (el.tabIndex < 0) return false; const r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2 && el.offsetParent !== null; });
+    const a = document.activeElement;
+    if (!a || a === document.body || !els.includes(a)) { (els.find(e => e.classList.contains('active') || e.classList.contains('on')) || els[0])?.focus(); return; }
+    const r = a.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; let best = null, bs = 1e9;
+    els.forEach(el => {
+        if (el === a) return; const q2 = el.getBoundingClientRect(), dx = q2.left + q2.width / 2 - cx, dy = q2.top + q2.height / 2 - cy; let ok, sc;
+        if (dir === 'right') { ok = q2.left >= r.right - r.width * .3 && dx > 0; sc = Math.abs(dx) + Math.abs(dy) * 2.2; }
+        else if (dir === 'left') { ok = q2.right <= r.left + r.width * .3 && dx < 0; sc = Math.abs(dx) + Math.abs(dy) * 2.2; }
+        else if (dir === 'down') { ok = q2.top >= r.bottom - r.height * .3 && dy > 0; sc = Math.abs(dy) + Math.abs(dx) * 2.2; }
+        else { ok = q2.bottom <= r.top + r.height * .3 && dy < 0; sc = Math.abs(dy) + Math.abs(dx) * 2.2; }
+        if (ok && sc < bs) { bs = sc; best = el; }
+    });
+    if (best) { best.focus(); best.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+}
+function tvKey(e) {
+    const k = e.key, kc = e.keyCode, dlg = qs('dialog[open]'), typing = /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
+    const dir = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[k];
+    if (kc === 403 || k === 'ColorF0Red') { toggleFavNow(); return true; }
+    if (kc === 404 || k === 'ColorF1Green') { if (!dlg) { setFs(false); (qs('.cat-btn.on') || qs('.cat-btn'))?.focus(); } return true; }
+    if (kc === 405 || k === 'ColorF2Yellow') { toggleView(); return true; }
+    if (kc === 406 || k === 'ColorF3Blue') { video.muted = !video.muted; osdText(video.muted ? '🔇 Sessiz' : '🔊 Ses açık'); return true; }
+    if (k === 'MediaPlayPause' || kc === 179 || kc === 85) { video.paused ? video.play().catch(() => {}) : video.pause(); return true; }
+    if (kc === 126) { video.play().catch(() => {}); return true; } if (kc === 127) { video.pause(); return true; }
+    if (k === 'ChannelUp' || kc === 427 || k === 'MediaTrackNext' || kc === 176) { zap(1); return true; }
+    if (k === 'ChannelDown' || kc === 428 || k === 'MediaTrackPrevious' || kc === 177) { zap(-1); return true; }
+    if (k === 'Escape' || k === 'GoBack' || k === 'BrowserBack' || kc === 4 || (k === 'Backspace' && !typing)) { tvBack(); return true; }
+    if (dlg) { if (dir && (!typing || dir === 'up' || dir === 'down')) { spatial(dir, dlg); return true; } return false; }
+    if (document.body.classList.contains('tvfs')) {
+        if (k === 'Enter' || kc === 23 || k === 'ContextMenu') { setFs(false); return true; }
+        if (k === 'ArrowUp' || k === 'PageUp') { zap(1); return true; } if (k === 'ArrowDown' || k === 'PageDown') { zap(-1); return true; }
+        if (k === 'ArrowLeft') { vol(-.1); return true; } if (k === 'ArrowRight') { vol(.1); return true; }
+        if (/^[0-9]$/.test(k)) { digit(k); return true; } return false;
+    }
+    if (dir && !(typing && (dir === 'left' || dir === 'right'))) { spatial(dir); return true; }
+    if (/^[0-9]$/.test(k) && !typing) { digit(k); return true; }
+    if ((k === 'Enter' || kc === 23) && e.target.id === 'videoContainer') { setFs(true); return true; }
+    return false;
+}
+let backArm = 0;
+function tvBack() {
+    const dlg = qs('dialog[open]'); if (dlg) { dlg.close(); return; }
+    if (document.body.classList.contains('tvfs')) { setFs(false); return; }
+    if ($('dropdown').classList.contains('show')) { $('dropdown').classList.remove('show'); return; }
+    if (document.activeElement && document.activeElement.tagName === 'INPUT') { document.activeElement.blur(); return; }
+    toast('Çıkmak için Geri tuşuna tekrar bas'); backArm = Date.now();
+}
+function tvPop() {
+    const busy = qs('dialog[open]') || document.body.classList.contains('tvfs') || $('dropdown').classList.contains('show');
+    if (busy) { tvBack(); history.pushState({ tv: 1 }, ''); }
+    else { toast('Çıkmak için Geri tuşuna tekrar bas'); setTimeout(() => history.pushState({ tv: 1 }, ''), 2500); }
+}
+function tvInit() {
+    video.controls = false; history.pushState({ tv: 1 }, ''); addEventListener('popstate', tvPop);
+    setTimeout(() => (qs('.channel-item.active') || qs('.cat-btn.on') || qs('button'))?.focus(), 400);
+    if (cur) setTimeout(() => setFs(true), 1500);
+}
+
+/* ---------- Klavye (PC/tablet) ve genel Enter ---------- */
+document.addEventListener('keydown', e => {
+    const t = e.target;
+    if (e.key === 'Enter' && t.getAttribute && t.getAttribute('tabindex') === '0' && !/^(BUTTON|INPUT|SELECT|TEXTAREA|A|VIDEO)$/.test(t.tagName) && t.id !== 'videoContainer') { e.preventDefault(); t.click(); return; }
+    if (IS_TV) { if (tvKey(e)) e.preventDefault(); return; }
+    if (/INPUT|SELECT|TEXTAREA/.test(t.tagName) || e.ctrlKey || e.metaKey || qs('dialog[open]')) return;
+    const k = e.key.toLowerCase();
+    if (k === 'arrowdown') { e.preventDefault(); zap(1); } else if (k === 'arrowup') { e.preventDefault(); zap(-1); }
+    else if (k === 'f') toggleFullScreen(); else if (k === 'm') { video.muted = !video.muted; osdText(video.muted ? '🔇 Sessiz' : '🔊 Ses açık'); }
+    else if (k === 'q') backCh(); else if (k === '/') { e.preventDefault(); $('search').focus(); }
+    else if (/^[0-9]$/.test(k)) digit(k);
+    else if (e.shiftKey && k === 'a') openAdmin();
+});
+setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }); }, 10000);
+$('clock').textContent = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+$('goalBtn').textContent = 'Gol bildirimi: ' + (goalAlert ? 'Açık' : 'Kapalı'); $('goalBtn').classList.toggle('on', goalAlert);
+
+/* ---------- Başlat ---------- */
+async function main() {
+    await loadData(); applySettings();
+    const th = LS.g('evb.theme', null); if (th) _st(th);
+    renderAll();
+    fetchScores(); setInterval(() => { if (!document.hidden) fetchScores(); }, 60000);
+    const last = D.set.resume && pool().find(c => c.id === LS.g('evb.last', null)), first = last || pool()[0];
+    if (first) playCh(first, true); else status('Henüz kanal yok. Menü → Yönetim paneli → Kanallar bölümünden ekleyin.', false);
+    if (IS_TV) tvInit();
+}
+addEventListener('load', main);
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+</body>
+</html>
